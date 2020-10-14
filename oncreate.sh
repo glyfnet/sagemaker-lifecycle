@@ -1,2 +1,6 @@
 #!/bin/bash
-git clone https://github.com/glyfnet/sagemaker-lifecycle.git /home/ec2-user/SageMaker/.lifecycle
+set -e
+
+wget https://raw.githubusercontent.com/glyfnet/sagemaker-lifecycle/main/bootstrap.sh .
+. ./bootstrap.sh
+rm bootstrap.sh

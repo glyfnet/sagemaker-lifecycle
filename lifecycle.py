@@ -1,13 +1,12 @@
-import urllib, os, subprocess
+import urllib, os, subprocess, pwd
 from crontab import CronTab
 
-BASE_PATH='/home/ec2-user/SageMaker'
-LIFECYCLE_PATH=f'{BASE_PATH}/.lifecycle'
-CONDA_PATH= f'{BASE_PATH}/.conda'
+BASE_PATH = '/home/ec2-user/SageMaker'
+LIFECYCLE_PATH = f'{BASE_PATH}/.lifecycle'
+CONDA_PATH = f'{BASE_PATH}/.conda'
 SSH_PATH = f'{BASE_PATH}/.ssh/id_rsa'
 
 AWS_LIFECYCLE_REPOS='https://raw.githubusercontent.com/aws-samples/amazon-sagemaker-notebook-instance-lifecycle-config-samples/master/scripts'
-CONDA_URL='https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh'
     
 def autostop(hours=24, lifecyle_path=LIFECYCLE_PATH):
     print("Fetching the autostop script")
@@ -21,16 +20,16 @@ def autostop(hours=24, lifecyle_path=LIFECYCLE_PATH):
     job.minute.every(10)
     
 def gitconfig(name, email):
-    run_user(
+    run(
         f'git config --global user.name "{name}"',
         f'git config --global user.email "{email}"'
     )
     
     if not os.path.isfile(SSH_PATH):
         os.makedirs(SSH_PATH, exist_ok=True)
-        run_user(f'cat /dev/zero | ssh-keygen -f "{SSH_PATH}/id_rsa" -q -N "" -t rsa -b 4096 -C "{email}"')
+        run(f'cat /dev/zero | ssh-keygen -f "{SSH_PATH}/id_rsa" -q -N "" -t rsa -b 4096 -C "{email}"')
     
-    run_user(
+    run(
         'eval "$(ssh-agent -s)"',
         f'ssh-add {SSH_PATH}/id_rsa' 
     )
@@ -39,7 +38,7 @@ def condaconfig():
     if not os.path.isdir(CONDA_PATH):
         os.mkdir(CONDA_PATH)
         wget(CONDA_URL, 'conda.sh')
-        run_user(f'conda.sh -b -u -p "{CONDA_PATH}"')
+        run(f'conda.sh -b -u -p "{CONDA_PATH}"')
         os.remove('conda.sh')
     
     projects = [p for p in os.listdir('.') if p[0] != '.']
@@ -69,15 +68,16 @@ def condaconfig():
             f'python -m ipykernel install --user --name "{env}" --display-name "Custom ({env})"'
         )
 
+def restart():
     run('restart jupyter-server')
-
+    
 def gitclone(*repos): 
     for repo in repos:
-        run_user(f'git clone {repo}')
+        run(f'git clone {repo}')
 
 def conda(*commands):
     command_str = ';'.join(commands)
-    run_user(f'{CONDA_PATH}/bin/activate;{command_str}')
+    run(f'{CONDA_PATH}/bin/activate;{command_str}')
     
 def wget(src, dest):
     with urllib.request.urlopen(src) as src_data:
@@ -86,17 +86,7 @@ def wget(src, dest):
             dest_file.write(content)
 
 def run(*commands):
-    return run_user(user=None, *commands)
-       
-def run_user(user='ec2-user', *commands):
-    def set_ids():
-	    if user:
-		    os.setgid(user)
-		    os.setuid(user)
-	
-    return subprocess.Popen(
-        ';'.join(commands) ,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT, 
-        preexec_fn=set_ids
+    return subprocess.run(
+        ';'.join(commands)
     )
+    
