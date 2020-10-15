@@ -1,19 +1,22 @@
 #!/bin/bash
-
+####################################
+# DONT EDIT
+####################################
 set -e
 
-cd /home/ec2-user/SageMaker/.lifecycle
-sudo -u ec2-user -i <<'EOF'
-unset SUDO_UID
-source activate lifecycle
-python -c 'from lifecycle import *
-#####################################
-#autostop()
-#gitconfig("Eric Greene", "grr@amazon.com")
-#gitclone("https://github.com/glyfnet/timeseries_blog.git")
-#condaconfig()
-'
-EOF
+# source init script
+source .lifecycle/init.sh
 
-echo "Restarting the Jupyter server.."
-restart jupyter-server
+
+####################################
+# MODIFIABLE
+####################################
+
+# Add settings here 
+export NAME=grr
+export EMAIL=grr@amazon.com
+export IDLE_TIME=86400
+export RESTART_JUPYTER=false
+
+# Add on-start commands here
+run_commands git_config.sh autostop_schedule_root.sh ssh_key_install.sh hugo_start.sh restart_jupyter.sh
